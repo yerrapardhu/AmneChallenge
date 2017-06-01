@@ -1,0 +1,395 @@
+<html>
+    <head>
+    <!-- REFERENCES HERE -->
+        <style type="text/css">
+            #container
+            {
+                margin: auto;
+                width:100%;
+            }
+            #header
+            {
+                background: seashell;
+                height: 75px;
+                margin: auto;
+            }
+            #logo
+            {
+                width: 100px; 
+                height: 50px;
+                padding:5px;
+            }
+            #main
+            {                
+                width:50%;
+                left:25%;
+                right:25%;
+                position: absolute;
+                margin: 0 auto;
+            }
+            p.hint
+            {
+                font-style: italic;
+                color: black;
+            }
+            #description
+            {
+                color: aqua;
+            }
+            #address-box1, #address-box2
+            {
+                width:80%;
+                height: 30px;
+                margin: 10px 0px 0px 5px;
+                padding:5px;
+            }
+            #submit{
+                margin-top: 10px;
+                width:16%;
+                margin-left:76%;
+                height:30px;
+                color: black;
+            }
+            #address-box{
+                padding-left: 10px;
+            }
+            
+            .element::-webkit-input-placeholder
+            {
+                font-style: italic;
+                font-weight: bold;
+            }
+            
+        </style>
+        <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDwm4wquvboQY0vkucT3UfLDrnpDfMuqC4&libraries=places, geometry"></script>
+        <script type="text/javascript"> 
+            
+            var address_lists;
+            var autocomplete, service;
+            var address1, address2;
+            var resultList1, resultList2;
+            var user_location1, user_location2;
+            window.onload = function() {
+                address_lists = [];
+                initAutocomplete();
+            };
+            
+             function initAutocomplete() {
+                // Create the autocomplete object, restricting the search to geographical
+                // location types.
+                 alert("triggered the essential method");
+                 attachAutoComplete('address-box1');
+                 attachAutoComplete('address-box2');
+
+            }
+            
+            function attachAutoComplete(id)
+            {
+                autocomplete = new google.maps.places.Autocomplete(
+                   (document.getElementById(id)),
+                    {types: ['geocode']});
+
+                // When the user selects an address from the dropdown, populate the address
+                // fields in the form.
+                autocomplete.addListener('place_changed', function() {
+                    alert("address changed");
+              });
+            }
+            
+            /**
+            This function helps to provide bias to the regions near the user current location while suggesting
+            auto-completes.
+            **/
+            function getLocation() {
+                if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition(function(position) {
+                    var geolocation = {
+                      lat: position.coords.latitude,
+                      lng: position.coords.longitude
+                    };
+                    var circle = new google.maps.Circle({
+                      center: geolocation,
+                      radius: position.coords.accuracy
+                    });
+                    autocomplete.setBounds(circle.getBounds());
+                  });
+                }
+            }
+            
+            function getRealEstateAgencies()
+            {
+                 resultList1 = [];
+                 resultList2 = [];
+                 address1 = document.getElementById('address-box1').value;
+                 address2 = document.getElementById('address-box2').value; 
+                 initService();
+                 getUserCoords();
+                 /**getRealEstateAgency(address1, function(resultList){
+                     alert("result 1 output");
+                     //resultList1 = resultList;
+
+                    
+                 });**/
+                getRealEstateAgency(address2, function(resultList){
+                     alert("result 2 output");
+                     //parseResult();
+                    //resultList2 = resultList;
+                    mergeResults(resultList);
+                    parseResult(resultList);
+                });
+
+            }
+            
+            function initService()
+            {
+                var center_loc = {lat: -33.867, lng: 151.195};
+
+                var map = new google.maps.Map(document.getElementById('map'), {
+                center: center_loc,
+                zoom: 15
+                });
+                //alert("second cut");
+                // Create the PlaceService and send the request.
+                // Handle the callback with an anonymous function.
+                
+                  service = new google.maps.places.PlacesService(map);
+                //alert("third cut");
+            }
+            
+            function getRealEstateAgency(address, callback) {
+                alert("getRealEstateAgency triggered");
+                var geocoder = new google.maps.Geocoder();
+               
+                alert(address);
+
+                geocoder.geocode( { 'address': address}, function(results, status) {
+
+                    if (status == google.maps.GeocoderStatus.OK) {
+                        var latitude = results[0].geometry.location.lat();
+                        var longitude = results[0].geometry.location.lng();
+                        alert("latitude: "+latitude + " long:" + longitude);
+                        searchByPlace(latitude, longitude, function(resultList){
+                            alert("********Got control back from service nearBy ********");
+                            printList(resultList);
+                            callback(resultList);
+                        });
+                        
+                        
+                    }
+                    
+                }); 
+                //latitude: 47.62361869999999 long:-122.33207270000003
+                
+            }
+            
+            function searchByPlace(latitude, longitude, callback)
+            {
+                //var pyrmont = {lat: 47.623, lng: -122.332};
+                //alert("latitude: "+latitude + " long:" + longitude);
+                var myloc = new google.maps.LatLng(latitude,longitude);
+                //alert("object formed");
+                alert("latitude: "+latitude +" "+longitude);
+
+                
+                alert("call initiated");
+                  // Specify location, radius and place types for your Places API search.
+                var request = {
+                    location: myloc,
+                    radius: '50000',
+                    types: ['real_estate_agency']
+                };
+                var resultList = [];
+                  service.nearbySearch(request, function(results, status) {
+                        alert("call triggered");
+                        if (status == google.maps.places.PlacesServiceStatus.OK) {
+                              alert("call success:");
+                              for (var i = 0; i < results.length; i++) {
+                                var jsonObj = {};
+                                var place = results[i];
+                                // If the request succeeds, draw the place location on
+                                // the map as a marker, and register an event to handle a
+                                // click on the marker.
+                               //alert(place.id);
+                                //alert(place.name + " " +place.place_id + " ");
+                                jsonObj['place_id'] = place.place_id;
+                                jsonObj['name'] = place.name;
+                                var count = 0;
+                                getPlaceDetails(place.place_id, jsonObj, function(finalJsonObj) {
+                                    resultList.push(finalJsonObj);
+                                    count++;
+                                    console.log(" count: "+count +"The details are: "+finalJsonObj['name'] + " addr: "+finalJsonObj['address'] + " rating: "+finalJsonObj['rating'] );
+                                    if( count == results.length)
+                                        callback(resultList);
+                                                                     
+                                });
+                              }
+                           
+                        }
+                      else{
+                          alert("call failed");
+                      }
+                      
+                });
+            }
+            
+            function getPlaceDetails(place_id, jsonObj, callback)
+            {
+                        console.log("get details triggered: "+place_id);
+                        service.getDetails({placeId: place_id}, 
+                            function(place, status) {
+                                if (status === google.maps.places.PlacesServiceStatus.OK) {
+                                    jsonObj['address'] = place.formatted_address;
+                                    jsonObj['phone'] = place.formatted_phone_number;
+                                    jsonObj['rating'] = place.rating;
+                                    jsonObj['location'] = place.geometry.location;
+                                    console.log("got details for the agency" +place.name);
+                                    callback(jsonObj);
+                                    
+                                }
+                
+                        });
+            }
+            
+            function printList(resultList)
+            {
+                //address_lists.push(resultList);
+                alert("total length of the result list is:" +resultList.length);
+                for( var index = 0; index < resultList.length; index++ )
+                {
+                    var jsonObj = resultList[index];
+                    console.log("The details are: place_id "+jsonObj['place_id']  + " name: " +jsonObj['name'] + " addr: "+jsonObj['address'] + " rating:  "+jsonObj['rating'] +"mobile: "+jsonObj['phone']);    
+                }
+            }
+                        
+            /**
+            Displays the final result in the tabular form.
+            **/
+            function parseResult(obj)
+            {
+                alert("parsing result");
+                /**resultList.sort(function(a,b){
+                  if(a.distance > b.distance)
+                    return 1;
+                  else if(a.distance < b.distance)
+                    return -1;
+                  else
+                    return 0;
+                });**/
+                // console.log(obj);
+                var html = '<table style="border:1px solid black">\
+                <tr><th>Name</th><th>Address</th><th>Phone Number</th><th>Rating</th><th>distance</th></tr>\
+                \
+                ';
+
+                for(i=0; i<obj.length;i++)
+                {
+                  // console.log(obj[i].place_id.distance);
+                  html += "<tr>";
+                  html += "<td>"+obj[i].name+"</td>";
+                  html += "<td>"+obj[i].address+"</td>";
+                  html += "<td>"+obj[i].phone+"</td>";
+                  html += "<td>"+obj[i].rating+"/5</td>";
+                  html += "<td>"+obj[i].distance+" &nbsp;miles</td>";
+                  // document.getElementById("results").innerHTML += "<p>"+obj[i].place_id.distance+"</p>";
+                  html += "</tr>";
+                }
+                html += "</table>"
+                alert("HTML formed: "+html);
+                document.getElementById('result').innerHTML = html;
+            }
+            
+            /**
+            Returns the location coordinates for the address given.
+            **/
+            function getLocationCoords(address, callback)
+            {
+                var geocoder = new google.maps.Geocoder();
+                //alert(address);
+                geocoder.geocode( { 'address': address}, function(results, status) {
+                    if (status == google.maps.GeocoderStatus.OK) {
+                        var latitude = results[0].geometry.location.lat();
+                        var longitude = results[0].geometry.location.lng();
+                        //alert("latitude: "+latitude + " long:" + longitude);
+                        var latlng = new google.maps.LatLng(latitude,longitude);
+                        callback(latlng);
+                    }
+                });
+            }
+            
+        
+            function getUserCoords()
+            {
+                getLocationCoords(address1, function(latlng){
+                    user_location1 = latlng;
+                });
+                getLocationCoords(address2, function(latlng){
+                   user_location2 = latlng; 
+                });        
+            }
+                    
+            /**
+            use two location objects to calculate the distance (in miles and round the value to two decimals) between them.
+            **/
+            function getDistance(p1, p2)
+            {
+                
+                return (google.maps.geometry.spherical.computeDistanceBetween(p1, p2) / 1609);
+            }
+                    
+            function mergeResults(resultList)
+            {
+                //use the two result lists set and wisely remove the objects in the second list to avoid duplicates.
+                //Worry about it later.
+                alert("merging results");
+                for(index = 0; index < resultList.length; index++)
+                {
+                    var jsonObj = resultList[index];
+                    var dist1 = getDistance(jsonObj['location'], user_location1);
+                    var dist2 = getDistance(jsonObj['location'], user_location2);
+                    alert("dist1: "+dist1 + " dist2: "+dist2);
+                    jsonObj['distance'] = (dist1 + dist2);
+                }
+            }
+
+            
+        </script>
+    </head>
+    <body>
+        
+        <div id = "container" >
+            <div id = "header" >
+                <div id = "logo-bar">
+                    <img id = "logo" src="logo.png" text="Amne">
+                </div>
+            </div>
+            <div id ="main">
+                <div id="description">
+                    <h1>
+                        Get the nearest real estate agencies near you,
+                    </h1>
+                    <p class = "hint">Please provide two different addresses to search....</p>
+                </div>
+                 
+                <div id="input">
+                    <div>
+                        <label for="address-box1">Address - 1</label>
+                        <input id="address-box1" placeholder="first address...." onFocus="getLocation()" type="text" />
+                    </div>
+                    <div>
+                        <label for="address-box2">Address - 2</label>
+                        <input id="address-box2" placeholder="second address...." onFocus="getLocation()" type="text" />
+                    </div>
+
+                    <button id="submit" onclick="getRealEstateAgencies()">Search</button>
+                    <div id="map">
+                        <p>results here</p>
+                    </div>
+                    <div id="result">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </body>
+</html>
