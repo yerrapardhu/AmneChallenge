@@ -2,72 +2,69 @@
     <head>
     <!-- REFERENCES HERE -->
         <style type="text/css">
-            table, td, th {
-              border: 1px solid #ddd;
-              text-align: left;
-            }
-
-            table {
-              border-collapse: collapse;
-              width: 80%;
-              margin: 0px auto;
-            }
-
-            th, td {
-              padding: 15px;
-            }
+            
             #container
             {
                 margin: auto;
                 width:100%;
             }
+            
             #header
             {
                 background: seashell;
                 height: 75px;
-                margin: auto;
+                margin: 0, auto;
             }
+            
             #logo
             {
                 width: 100px;
                 height: 50px;
                 padding:5px;
             }
+            
             #main
             {
                 width:75%;
                 margin: 0px auto;
             }
-            #inside_main
+            
+            #content
             {
-                width:80%;
-                margin: 0px auto;
+                margin-left: 15%;
+                margin-right: 15%;
             }
-
+        
             p.hint
             {
                 font-style: italic;
                 color: black;
             }
+            
             #description
             {
                 color: aqua;
             }
+            
             #address-box1, #address-box2
             {
-                width:80%;
+                width:60%;
                 height: 30px;
                 margin: 10px 0px 0px 5px;
                 padding:5px;
             }
-            #submit{
+            
+            #submit
+            {
                 margin-top: 10px;
                 width:16%;
-                margin-left:76%;
+                margin-left:56%;
                 height:30px;
                 color: black;
             }
-            #address-box{
+            
+            #address-box
+            {
                 padding-left: 10px;
             }
 
@@ -76,20 +73,48 @@
                 font-style: italic;
                 font-weight: bold;
             }
+            
+            table, td, th
+            {
+              border: 1px solid #ddd;
+              text-align: left;
+            }
+
+            table
+            {
+              border-collapse: collapse;
+              margin: 0px auto;
+            }
+            
+            #result
+            {
+                margin: 0px;  
+                width:100%;
+            }
+
+            th, td
+            {
+              padding: 10px;
+            }
 
         </style>
-        <!-- <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBv3Rvlo0Ym8JKk0lIcD-QLwQh5800NcgM&libraries=places"></script> -->
-        <script async defer
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDwm4wquvboQY0vkucT3UfLDrnpDfMuqC4&libraries=places, geometry"></script>
-        <script type="text/javascript">
 
-            var address_lists;
+        <!--
+            async and defer helps in not blocking the parser until the libaries are fecthed.
+        -->
+        <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCw7D1IbsBIky3iL-frEjyxMqSyumOKOaI&libraries=places, geometry&sensor=false"></script>
+        <script async defer type="text/javascript"> 
+
             var autocomplete, service;
-            var address1, address2;
-            var resultList1, resultList2;
-            var user_location1, user_location2;
+            var result_list, full_list;
+            var addr1, addr2;
+            var addr1_latlng, addr2_latlng;
+            
             window.onload = function() {
-                address_lists = [];
+                result_list = [];
+                addr1 = [];
+                addr2 = [];
                 initAutocomplete();
             };
 
@@ -117,7 +142,10 @@
                 }
                 return xhr;
             };
-
+            
+            /**
+            Perform synchronous calls for getting the latlng of the user provided address
+            **/
             ajax.send = function (url, callback, method, data, async) {
                 if (async === undefined) {
                     async = true;
@@ -134,7 +162,10 @@
                 }
                 x.send(data)
             };
-
+            
+            /**
+            Form the get url from the parameters provided and trigger the send function above
+            **/
             ajax.get = function (url, data, callback, async) {
                 var query = [];
                 for (var key in data) {
@@ -143,105 +174,177 @@
                 ajax.send(url + (query.length ? '?' + query.join('&') : ''), callback, 'GET', null, async)
             };
 
-             function initAutocomplete() {
+            /**
+            This function is executed when the page is loaded
+            **/
+            function initAutocomplete() {
                 // Create the autocomplete object, restricting the search to geographical
                 // location types.
                 //  alert("triggered the essential method");
-                 attachAutoComplete('address-box1');
-                 attachAutoComplete('address-box2');
-
+                attachAutoComplete('address-box1');
+                attachAutoComplete('address-box2');
             }
 
+            /**
+            Responsible for attaching the auto-completes to the input boxes which makes it easy for user
+            to provided address
+            **/
             function attachAutoComplete(id)
             {
                 autocomplete = new google.maps.places.Autocomplete(
                    (document.getElementById(id)),
                     {types: ['geocode']});
-
-                // When the user selects an address from the dropdown, populate the address
-                // fields in the form.
             }
 
-
+            /**
+            This function is triggered on the button click.
+            Responsible to initiate few variables before making the API call to fetch the near by places.
+            **/
             function getRealEstateAgencies()
             {
-              fulllist = [];
-                 resultList1 = [];
-                 html = document.getElementById('result');
-                 html.innerHTML = "<tr><th>Name</th><th>Address</th><th>Phone Number</th><th>Rating</th></tr>";
-                 resultList2 = [];
-                 user1 = [];
-                 user2 = [];
-                 address1 = (document.getElementById('address-box1').value).replace(/ /g,"+");
-                 address2 = (document.getElementById('address-box2').value).replace(/ /g,"+");
-                 console.log('https://maps.googleapis.com/maps/api/geocode/json?address='+address1+'&key=AIzaSyBv3Rvlo0Ym8JKk0lIcD-QLwQh5800NcgM')
-                 ajax.get('https://maps.googleapis.com/maps/api/geocode/json?address='+address1+'&key=AIzaSyBv3Rvlo0Ym8JKk0lIcD-QLwQh5800NcgM',{},function(res){
-                   user1['lat'] = JSON.parse(res).results[0].geometry.location.lat;
-                   user1['lon'] = JSON.parse(res).results[0].geometry.location.lng;
+                 full_list = [];
+                 var address1 = (document.getElementById('address-box1').value).replace(/ /g,"+");
+                 var address2 = (document.getElementById('address-box2').value).replace(/ /g,"+");
+                    
+                 // make an synchronous call to get the coords for the corresponding address.
+                 ajax.get('https://maps.googleapis.com/maps/api/geocode/json',{'address' : address1, 'key' : 'AIzaSyBv3Rvlo0Ym8JKk0lIcD-QLwQh5800NcgM'},
+                 function(res){
+                    addr1['lat'] = JSON.parse(res).results[0].geometry.location.lat;
+                    addr1['lng'] = JSON.parse(res).results[0].geometry.location.lng;
                  }, false);
-                 ajax.get('https://maps.googleapis.com/maps/api/geocode/json?address='+address2+'&key=AIzaSyBv3Rvlo0Ym8JKk0lIcD-QLwQh5800NcgM',{},function(res){
-                   user2['lat'] = JSON.parse(res).results[0].geometry.location.lat;
-                   user2['lon'] = JSON.parse(res).results[0].geometry.location.lng;
+                
+                 ajax.get('https://maps.googleapis.com/maps/api/geocode/json',{'address' : address2, 'key' : 'AIzaSyBv3Rvlo0Ym8JKk0lIcD-QLwQh5800NcgM'},
+                 function(res){
+                    addr2['lat'] = JSON.parse(res).results[0].geometry.location.lat;
+                    addr2['lng'] = JSON.parse(res).results[0].geometry.location.lng;
                  }, false);
-
+                
+                addr1_latlng = new google.maps.LatLng(addr1['lat'],addr1['lng']);
+                addr2_latlng = new google.maps.LatLng(addr2['lat'],addr2['lng']);
+                
+                
+                //get the near by agencies for the first address.
+                getNearByPlaces(addr1_latlng);
+                getNearByPlaces(addr2_latlng);
+                setTimeout(sort, 3000);
+            }
+             
+            /**
+             Retrieves the real-estate agencies near the address provided.
+             Uses nearBy and placeDetails APIS from the Google places library.
+             **/
+            function getNearByPlaces(addr_latlng)
+            {
+                var map = new google.maps.Map(document.getElementById('map'), {
+                      center: {lat: -33.866, lng: 151.196},
+                      zoom: 15
+                });
+                
                 service = new google.maps.places.PlacesService(map);
                 service.nearbySearch({
-                  location :new google.maps.LatLng(user1['lat'],user1['lon']),
-                  "radius" : 1000,
+                  location : addr_latlng,
+                    //16090 equals 10 miles, restrict the results to first 10 miles.
+                  "radius" : 16090,
                   "types" : ['real_estate_agency']
-                }, function(res, status){
-                  for(i=0;i<res.length;i++){
-                    var map = new google.maps.Map(document.getElementById('map'), {
-                      center: {lat: -33.866, lng: 151.196},
-                      zoom: 15
-                    });
-                    console.log(res[i]);
-                    var service = new google.maps.places.PlacesService(map);
-                    service.getDetails({
-                      placeId: res[i].place_id
-                    }, function(place, status) {
-                      if(place != null && fulllist.indexOf(place.place_id)==-1)
-                      {
-                        fulllist.push(place.place_id);
-                        if(place.rating == undefined)
-                          place.rating = "Not Available";
-                        html.innerHTML += "<tr><td>"+place.name+'</td><td>'+place.formatted_address+'</td><td>'+place.formatted_phone_number+'</td><td>'+place.rating+'</td></tr>'
-                        // document.getElementById('result').innerHTML += "<p>"+place.formatted_address+"---"+place.formatted_phone_number+"---"+place.name+"</p>"
-                      }
-                    });
-                  }
-                });
+                }, 
+                    function(res, status)
+                    { 
+                        //console.log("call:1 " +res.length);
+                        for(i=0;i<res.length;i++)
+                        {
+                        
+                            console.log(res[i]);
+                            //var service = new google.maps.places.PlacesService(map);
+                            service = new google.maps.places.PlacesService(map);
+                            service.getDetails({
+                              placeId: res[i].place_id}, 
+                              function(place, status)
+                              {
+                                /**
+                                 Getting QUERY_LIMIT error responses to api calls after some extent and the callback function is getting triggered immediately with a null response.
+                                 Can use some time out mechanisms while calling the API avaoiding the bootle neck of requests, but this slows down the entire search from the user perspective.
+                                 **/
+                                 if( place == null )
+                                 {
+                                    console.log("Null value: addr1, place-id: "+res[i].place_id);    
+                                 }
+                                 if(place != null && full_list.indexOf(place.place_id) == -1)
+                                 {
+                                    full_list.push(place.place_id);
+                                    if(place.rating == undefined)
+                                        place.rating = "N/A";
 
-                service.nearbySearch({
-                  location :new google.maps.LatLng(user2['lat'],user2['lon']),
-                  "radius" : 1000,
-                  "types" : ['real_estate_agency']
-                }, function(res, status){
-                  for(i=0;i<res.length;i++){
-                    var map = new google.maps.Map(document.getElementById('map'), {
-                      center: {lat: -33.866, lng: 151.196},
-                      zoom: 15
-                    });
-                    console.log(res[i]);
-                    var service = new google.maps.places.PlacesService(map);
-                    service.getDetails({
-                      placeId: res[i].place_id
-                    }, function(place, status) {
-                      if(place != null && fulllist.indexOf(place.place_id)==-1)
-                      {
-                        fulllist.push(place.place_id);
-                        html.innerHTML += '<tr><td>'+place.name+'</td><td>'+place.formatted_address+'</td><td>'+place.formatted_phone_number+'</td><td>'+place.rating+'</td></tr>'
-                        // document.getElementById('result').innerHTML += "<p>"+place.formatted_address+"---"+place.formatted_phone_number+"---"+place.name+"</p>"
-                      }
-                    });
-                  }
-                });
+                                    var dist = getDistance(place.geometry.location, addr1_latlng)
+                                    dist += getDistance(place.geometry.location, addr2_latlng);                       
 
-                // html.innerHTML += "</table>"
+                                    var jsonObj = {'name' : place.name, 'address' : place.formatted_address, 'phone' : place.formatted_phone_number, 'rating' : place.rating, 'distance' : dist };
+
+                                    result_list.push(jsonObj);
+
+                                  }
+                        
+                            });
+                        }
+                });
             }
-
-        </script>
-    </head>
+             
+            /**
+            Sorts the results based on the distance metric and then formulates the table with the responses.
+            **/
+            function sort()
+            {
+                console.log("will sort the list");
+                
+                // Sort the results based on the distance metric.
+                result_list.sort(function(a,b){
+                    if(a.distance > b.distance)
+                        return 1;
+                    else if(a.distance < b.distance)
+                        return -1;
+                    else
+                        return 0;
+                    });
+                
+                // Construct the table containing results.
+                var html = document.getElementById('result');
+                html.innerHTML = "<tr><th width='28%'>Name</th><th width='38%'>Address</th><th width='18%'>Phone Number</th><th width='8%'>Rating</th><th width='8%'>Distance</th></tr>";
+                
+                for(var index = 0; index < result_list.length; index++ )
+                {
+                    var place = result_list[index];
+                    html.innerHTML += "<tr><td>"+place.name + '</td><td>'+place.address+'</td><td>'+place.phone+'</td><td>'+place.rating+'</td><td>'+place.distance.toFixed(2)+ ' mi'+ '</td></tr>';
+                }
+            
+            }
+                
+            /**
+            use two location objects to calculate the distance (in miles and round the value to two decimals) between them.
+            **/
+            function getDistance(p1, p2)
+            {   
+                //console.log(p1);
+                //there are some issues with the straight forward google geometry API. So replaced it with mathematical
+                //calcualtion of the distance from w3 schools.
+                //return google.maps.geometry.spherical.computeDistanceBetween(p1, p2);
+                
+                var R = 6378137; // Earth’s mean radius in meter
+                var dLat = rad(p2.lat() - p1.lat());
+                var dLong = rad(p2.lng() - p1.lng());
+                var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(rad(p1.lat())) * Math.cos(rad(p2.lat())) *
+                    Math.sin(dLong / 2) * Math.sin(dLong / 2);
+                var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                var d = R * c;
+                return d / 1609; // returns the distance in meter
+            }
+        
+            var rad = function(x)
+            {
+              return x * Math.PI / 180;
+            };
+              
+    </script>
+</head>
     <body>
 
         <div id = "container" >
@@ -251,7 +354,7 @@
                 </div>
             </div>
             <div id ="main">
-              <div id="inside_main">
+                <div id = "content">
                 <div id="description">
                     <h1>
                         Get the nearest real estate agencies near you,
@@ -262,25 +365,25 @@
                 <div id="input">
                     <div>
                         <label for="address-box1">Address - 1</label>
-                        <input id="address-box1" placeholder="first address...." onFocus="getLocation()" type="text" />
+                        <input id="address-box1" placeholder="first address...." type="text" />
                     </div>
                     <div>
                         <label for="address-box2">Address - 2</label>
-                        <input id="address-box2" placeholder="second address...." onFocus="getLocation()" type="text" />
+                        <input id="address-box2" placeholder="second address...."  type="text" />
                     </div>
 
                     <p><button id="submit" onclick="getRealEstateAgencies()">Search</button></p>
                     <div id="map">
-                        <p>results here</p>
+            
                     </div>
+                  </div>
+                </div>
                     <div>
                       <table id="result">
                       </table>
                     </div>
-                </div>
               </div>
             </div>
-        </div>
 
     </body>
 </html>
